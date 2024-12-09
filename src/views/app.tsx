@@ -206,7 +206,7 @@ export default function App() {
                   onDelete={handleDelete}
                   onAskAI={handleAskAI}
                 >
-                  <div onContextMenu={handleEditorContextMenu}>
+                  <div onContextMenu={handleEditorContextMenu} className="h-full">
                     <MDEditor
                       value={selectedArticle.content}
                       onChange={(value) => {
@@ -216,6 +216,7 @@ export default function App() {
                       }}
                       height="100%"
                       preview="edit"
+                      className="h-full [&_.w-md-editor-content]:h-full"
                     />
                   </div>
                 </EditorContextMenu>
