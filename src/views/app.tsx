@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { useDebounce } from "@/hooks/useDebounce"
 import { AiChat } from "@/components/ai-chat"
+import { EditorContextMenu } from "@/components/editor-context-menu"
 
 interface Article {
   id: number
@@ -20,6 +21,7 @@ export default function App() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedText, setSelectedText] = useState('')
 
   useEffect(() => {
     fetchArticles()
@@ -113,6 +115,40 @@ export default function App() {
     debouncedUpdate(id, content, title || undefined)
   }
 
+  const handleEditorContextMenu = (e: React.MouseEvent) => {
+    const selection = window.getSelection()?.toString() || ''
+    setSelectedText(selection)
+  }
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(selectedText)
+  }, [selectedText])
+
+  const handleCut = useCallback(() => {
+    if (!selectedArticle) return
+    navigator.clipboard.writeText(selectedText)
+    const content = selectedArticle.content
+    const start = content.indexOf(selectedText)
+    if (start === -1) return
+    const newContent = content.slice(0, start) + content.slice(start + selectedText.length)
+    updateArticle(selectedArticle.id, newContent)
+  }, [selectedArticle, selectedText])
+
+  const handleDelete = useCallback(() => {
+    if (!selectedArticle) return
+    const content = selectedArticle.content
+    const start = content.indexOf(selectedText)
+    if (start === -1) return
+    const newContent = content.slice(0, start) + content.slice(start + selectedText.length)
+    updateArticle(selectedArticle.id, newContent)
+  }, [selectedArticle, selectedText])
+
+  const handleAskAI = useCallback(() => {
+    // Scroll chat into view on mobile
+    const chatPanel = document.querySelector('[data-panel="chat"]')
+    chatPanel?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
   return (
     <div className="h-screen w-full">
       <ResizablePanelGroup direction="horizontal" className="min-h-screen">
@@ -159,26 +195,42 @@ export default function App() {
 
         <ResizableHandle />
 
-        {/* Center - Markdown Editor */}
-        <ResizablePanel defaultSize={50} className="bg-background">
-          <div className="h-full p-4">
-            <MDEditor
-              value={selectedArticle?.content || '# Select or create an article'}
-              onChange={(val) => {
-                if (selectedArticle) {
-                  updateArticle(selectedArticle.id, val || '')
-                }
-              }}
-              height="100%"
-              preview="edit"
-            />
-          </div>
+        {/* Center - Editor */}
+        <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4">
+              {selectedArticle ? (
+                <EditorContextMenu
+                  selectedText={selectedText}
+                  onCopy={handleCopy}
+                  onCut={handleCut}
+                  onDelete={handleDelete}
+                  onAskAI={handleAskAI}
+                >
+                  <div onContextMenu={handleEditorContextMenu}>
+                    <MDEditor
+                      value={selectedArticle.content}
+                      onChange={(value) => {
+                        if (value !== undefined) {
+                          updateArticle(selectedArticle.id, value)
+                        }
+                      }}
+                      height="100%"
+                      preview="edit"
+                    />
+                  </div>
+                </EditorContextMenu>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  Select an article to start editing
+                </div>
+              )}
+            </div>
         </ResizablePanel>
 
         <ResizableHandle />
 
         {/* Right Sidebar - AI Chat */}
-        <ResizablePanel defaultSize={25}>
+        <ResizablePanel defaultSize={25} data-panel="chat">
           {selectedArticle ? (
             <AiChat 
               articleId={selectedArticle.id} 
