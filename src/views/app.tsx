@@ -1,8 +1,9 @@
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import MDEditor from '@uiw/react-md-editor'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { useDebounce } from "@/hooks/useDebounce"
 
 interface Article {
   id: number
@@ -59,7 +60,12 @@ export default function App() {
     }
   }
 
-  const updateArticle = async (id: number, content: string) => {
+  const extractTitleFromContent = (content: string): string | null => {
+    const h1Match = content.match(/^#\s+(.+)$/m)
+    return h1Match ? h1Match[1].trim() : null
+  }
+
+  const updateArticleRequest = useCallback(async (id: number, content: string, title?: string) => {
     if (!selectedArticle) return
 
     try {
@@ -71,6 +77,7 @@ export default function App() {
         body: JSON.stringify({
           ...selectedArticle,
           content,
+          ...(title && { title }),
         }),
       })
       if (!response.ok) throw new Error('Failed to update article')
@@ -82,6 +89,27 @@ export default function App() {
     } catch (err) {
       console.error('Error updating article:', err)
     }
+  }, [selectedArticle])
+
+  const debouncedUpdate = useDebounce(updateArticleRequest, 500)
+
+  const updateArticle = (id: number, content: string) => {
+    // Update the local state immediately for a smoother UX
+    if (selectedArticle) {
+      const newTitle = extractTitleFromContent(content)
+      const immediateUpdate = { 
+        ...selectedArticle, 
+        content,
+        ...(newTitle && { title: newTitle })
+      }
+      setSelectedArticle(immediateUpdate)
+      setArticles(prev => prev.map(article => 
+        article.id === id ? immediateUpdate : article
+      ))
+    }
+    // Debounced API call with title if found
+    const title = extractTitleFromContent(content)
+    debouncedUpdate(id, content, title || undefined)
   }
 
   return (
