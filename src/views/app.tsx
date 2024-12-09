@@ -180,7 +180,10 @@ export default function App() {
         {/* Right Sidebar - AI Chat */}
         <ResizablePanel defaultSize={25}>
           {selectedArticle ? (
-            <AiChat articleId={selectedArticle.id} />
+            <AiChat 
+              articleId={selectedArticle.id} 
+              onInsertText={(text) => updateArticle(selectedArticle.id, selectedArticle.content + '\n\n' + text)}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               Select an article to start chatting

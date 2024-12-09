@@ -1,5 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Copy, FileDown } from "lucide-react"
 
 interface Message {
   id: string
@@ -10,9 +12,10 @@ interface Message {
 
 interface AiChatProps {
   articleId: number
+  onInsertText?: (text: string) => void
 }
 
-export function AiChat({ articleId }: AiChatProps) {
+export function AiChat({ articleId, onInsertText }: AiChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -86,6 +89,14 @@ export function AiChat({ articleId }: AiChatProps) {
     }
   }
 
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error('Failed to copy text:', err)
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b p-4 bg-background">
@@ -103,8 +114,34 @@ export function AiChat({ articleId }: AiChatProps) {
                     : "bg-primary text-primary-foreground mr-4"
                 }`}
               >
-                {message.role === 'ai' ? "AI: " : "You: "}
-                {message.content}
+                <div className="flex items-start gap-2">
+                  <span>{message.role === 'ai' ? "AI: " : "You: "}</span>
+                  <span className="flex-1">{message.content}</span>
+                </div>
+                {message.role === 'ai' && (
+                  <div className="mt-2 flex gap-2 justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={() => handleCopy(message.content)}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                    {onInsertText && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => onInsertText(message.content)}
+                      >
+                        <FileDown className="h-4 w-4 mr-1" />
+                        Insert
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {isLoading && (
