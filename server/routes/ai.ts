@@ -11,79 +11,77 @@ const openai = new OpenAI({
 // Get messages for an article
 router.get('/messages/:articleId', async (req, res) => {
   try {
-    const articleId = parseInt(req.params.articleId);
+    const articleId = parseInt(req.params.articleId)
     const messages = await prisma.message.findMany({
       where: { articleId },
-      orderBy: { createdAt: 'asc' }
-    });
-    res.json(messages);
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        content: true,
+        role: true,
+        context: true,
+        createdAt: true,
+      }
+    })
+    res.json(messages)
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    res.status(500).json({ error: 'Failed to fetch messages' });
+    console.error('Error fetching messages:', error)
+    res.status(500).json({ error: 'Failed to fetch messages' })
   }
 });
 
 // Send a message and get AI response
-router.post('/chat/:articleId', async (req, res) => {
+router.post('/chat', async (req, res) => {
   try {
-    const articleId = parseInt(req.params.articleId);
-    const { content } = req.body;
+    const { message, articleId, context } = req.body
 
-    // Save user message
+    // Save user message to database
     const userMessage = await prisma.message.create({
       data: {
-        content,
+        content: message,
         role: 'user',
-        articleId
-      }
-    });
+        context: context || null,
+        articleId,
+      },
+    })
 
-    // Get all messages for context
-    const messages = await prisma.message.findMany({
-      where: { articleId },
-      orderBy: { createdAt: 'asc' }
-    });
+    // Prepare messages for OpenAI
+    const messages = [
+      { role: 'system', content: 'You are a helpful AI assistant that helps users write and edit articles.' },
+    ]
 
-    // Get article content for context
-    const article = await prisma.article.findUnique({
-      where: { id: articleId }
-    });
+    // Add context if available
+    if (context) {
+      messages.push({ 
+        role: 'system', 
+        content: `The user is asking about the following text from their article: "${context}". Please reference this context in your response when relevant.`
+      })
+    }
 
-    // Create OpenAI chat completion
+    messages.push({ role: 'user', content: message })
+
+    // Get AI response
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: 'system',
-          content: `You are an AI assistant helping with an article. Here's the current article content:\n\n${article?.content}\n\nPlease help answer questions about this article.`
-        },
-        ...messages.map(msg => ({
-          role: msg.role === 'ai' ? 'assistant' : 'user',
-          content: msg.content
-        }))
-      ],
-    });
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+    })
 
-    const aiResponse = completion.choices[0].message;
+    const aiResponse = completion.choices[0].message.content
 
-    // Save AI response
+    // Save AI response to database
     const aiMessage = await prisma.message.create({
       data: {
-        content: aiResponse.content || '',
+        content: aiResponse,
         role: 'ai',
-        articleId
-      }
-    });
+        articleId,
+      },
+    })
 
-    // Return both messages
-    res.json({
-      userMessage,
-      aiMessage
-    });
+    res.json({ userMessage, aiMessage })
   } catch (error) {
-    console.error('OpenAI API error:', error);
-    res.status(500).json({ error: 'Failed to get AI response' });
+    console.error('Error in chat endpoint:', error)
+    res.status(500).json({ error: 'Failed to process chat request' })
   }
-});
+})
 
 export default router;

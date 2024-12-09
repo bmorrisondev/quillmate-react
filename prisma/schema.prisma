@@ -20,10 +20,11 @@ model Article {
 }
 
 model Message {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   content   String
   role      String
+  context   String?
   createdAt DateTime @default(now())
-  article   Article  @relation(fields: [articleId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   articleId Int
 }
