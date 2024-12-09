@@ -22,6 +22,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedText, setSelectedText] = useState('')
+  const [aiContext, setAiContext] = useState('')
 
   useEffect(() => {
     fetchArticles()
@@ -144,10 +145,11 @@ export default function App() {
   }, [selectedArticle, selectedText])
 
   const handleAskAI = useCallback(() => {
+    setAiContext(selectedText)
     // Scroll chat into view on mobile
     const chatPanel = document.querySelector('[data-panel="chat"]')
     chatPanel?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
+  }, [selectedText])
 
   return (
     <div className="h-screen w-full">
@@ -236,6 +238,8 @@ export default function App() {
             <AiChat 
               articleId={selectedArticle.id} 
               onInsertText={(text) => updateArticle(selectedArticle.id, selectedArticle.content + '\n\n' + text)}
+              context={aiContext}
+              onClearContext={() => setAiContext('')}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">

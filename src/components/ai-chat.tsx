@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Copy, FileDown } from "lucide-react"
+import { Copy, FileDown, X } from "lucide-react"
 
 interface Message {
   id: string
@@ -13,9 +13,11 @@ interface Message {
 interface AiChatProps {
   articleId: number
   onInsertText?: (text: string) => void
+  context?: string
+  onClearContext?: () => void
 }
 
-export function AiChat({ articleId, onInsertText }: AiChatProps) {
+export function AiChat({ articleId, onInsertText, context, onClearContext }: AiChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -152,24 +154,48 @@ export function AiChat({ articleId, onInsertText }: AiChatProps) {
           </div>
         </div>
       </ScrollArea>
-      <div className="border-t p-4 bg-background">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about this article..."
-            className="flex-1 rounded-md border bg-background px-3 py-2"
-            disabled={isLoading}
-          />
-          <button 
-            type="submit"
-            className="rounded-md bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50"
-            disabled={isLoading}
-          >
-            Send
-          </button>
-        </form>
+      <div className="border-t bg-background">
+        {context && (
+          <div className="px-4 py-2 border-b">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm text-muted-foreground">
+                  Asking about:
+                </div>
+                <div className="text-sm line-clamp-2 font-medium">
+                  {context}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={onClearContext}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="p-4">
+          <form onSubmit={handleSubmit} className="flex space-x-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about this article..."
+              className="flex-1 rounded-md border bg-background px-3 py-2"
+              disabled={isLoading}
+            />
+            <button 
+              type="submit"
+              className="rounded-md bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50"
+              disabled={isLoading}
+            >
+              Send
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )
