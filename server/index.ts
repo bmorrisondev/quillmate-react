@@ -2,9 +2,13 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-
 dotenv.config();
+
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import articlesRouter from './routes/articles';
+
+
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +24,8 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+app.use('/api/articles', articlesRouter);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -32,9 +38,8 @@ if (process.env.NODE_ENV !== 'production') {
       target: `http://localhost:${VITE_PORT}`,
       changeOrigin: true,
       ws: true,
-      logLevel: 'silent',
       // Don't proxy /api requests
-      filter: (pathname) => !pathname.startsWith('/api'),
+      filter: (pathname: string) => !pathname.startsWith('/api'),
     })
   );
 } else {
