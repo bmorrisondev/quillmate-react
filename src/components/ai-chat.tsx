@@ -1,39 +1,62 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 interface Message {
   id: string
   content: string
   role: 'ai' | 'user'
+  createdAt: string
 }
 
-export function AiChat() {
+interface AiChatProps {
+  articleId: number
+}
+
+export function AiChat({ articleId }: AiChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(`/api/ai/messages/${articleId}`)
+        if (!response.ok) throw new Error('Failed to fetch messages')
+        const data = await response.json()
+        setMessages(data)
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+      }
+    }
+
+    fetchMessages()
+  }, [articleId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    // Create a temporary user message
+    const tempUserMessage: Message = {
+      id: `temp-${Date.now()}`,
       content: input,
-      role: 'user'
+      role: 'user',
+      createdAt: new Date().toISOString()
     }
 
-    setMessages(prev => [...prev, userMessage])
+    // Add user message to UI immediately
+    setMessages(prev => [...prev, tempUserMessage])
     setInput('')
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch(`/api/ai/chat/${articleId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage]
+          content: input
         }),
       })
 
@@ -41,15 +64,23 @@ export function AiChat() {
         throw new Error('Failed to get AI response')
       }
 
-      const aiMessage: Message = await response.json()
-      setMessages(prev => [...prev, aiMessage])
+      const { userMessage, aiMessage } = await response.json()
+      
+      // Update messages, replacing temp user message and adding AI response
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempUserMessage.id ? userMessage : msg
+      ).concat(aiMessage))
     } catch (error) {
       console.error('Error getting AI response:', error)
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        content: 'Sorry, I encountered an error. Please try again.',
-        role: 'ai'
-      }])
+      setMessages(prev => {
+        const withoutTemp = prev.filter(msg => msg.id !== tempUserMessage.id)
+        return [...withoutTemp, {
+          id: Date.now().toString(),
+          content: 'Sorry, I encountered an error. Please try again.',
+          role: 'ai',
+          createdAt: new Date().toISOString()
+        }]
+      })
     } finally {
       setIsLoading(false)
     }
@@ -68,7 +99,7 @@ export function AiChat() {
                 key={message.id}
                 className={`p-3 rounded-lg ${
                   message.role === 'ai' 
-                    ? "bg-background ml-4" 
+                    ? "bg-muted/50 ml-4 border" 
                     : "bg-primary text-primary-foreground mr-4"
                 }`}
               >
@@ -90,7 +121,7 @@ export function AiChat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask the AI..."
+            placeholder="Ask about this article..."
             className="flex-1 rounded-md border bg-background px-3 py-2"
             disabled={isLoading}
           />

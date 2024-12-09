@@ -179,7 +179,13 @@ export default function App() {
 
         {/* Right Sidebar - AI Chat */}
         <ResizablePanel defaultSize={25}>
-          <AiChat />
+          {selectedArticle ? (
+            <AiChat articleId={selectedArticle.id} />
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              Select an article to start chatting
+            </div>
+          )}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
