@@ -6,7 +6,7 @@ dotenv.config();
 
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import articlesRouter from './routes/articles';
-
+import aiRouter from './routes/ai';
 
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 
@@ -25,6 +25,7 @@ app.use('/api', (req, res, next) => {
 });
 
 app.use('/api/articles', articlesRouter);
+app.use('/api/ai', aiRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
