@@ -136,7 +136,11 @@ export function AiChat({ articleId, onInsertText, context, onClearContext }: AiC
                   <div className="line-clamp-4">{message.context}</div>
                 </div>
               )}
-              <div>{message.content}</div>
+              <div className="whitespace-pre-wrap space-y-4">
+                {message.content.split('\n\n').map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
               {message.role === 'ai' && (
                 <div className="flex gap-2 self-end">
                   <Button
