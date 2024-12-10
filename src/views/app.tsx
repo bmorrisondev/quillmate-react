@@ -152,18 +152,18 @@ export default function App() {
   }, [selectedText])
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-screen w-full bg-purple-50/30">
       <ResizablePanelGroup direction="horizontal" className="min-h-screen">
         {/* Left Sidebar - Article List */}
-        <ResizablePanel defaultSize={20} minSize={15} className="bg-muted/50">
+        <ResizablePanel defaultSize={20} minSize={15} className="bg-white border-r border-purple-100">
           <div className="flex h-full flex-col">
-            <div className="border-b p-4 bg-background">
+            <div className="border-b border-purple-100 p-4 bg-white">
               <div className="flex justify-between items-center">
-                <h2 className="font-semibold">Articles</h2>
+                <h2 className="font-semibold text-purple-900">Articles</h2>
                 <Button
                   onClick={createNewArticle}
                   size="sm"
-                  className="px-2"
+                  className="px-3 bg-purple-600 hover:bg-purple-700 text-white"
                 >
                   New
                 </Button>
@@ -172,17 +172,19 @@ export default function App() {
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-2">
                 {isLoading ? (
-                  <div className="text-center text-muted-foreground">Loading...</div>
+                  <div className="text-center text-purple-500">Loading...</div>
                 ) : error ? (
-                  <div className="text-center text-destructive">{error}</div>
+                  <div className="text-center text-red-500">{error}</div>
                 ) : articles.length === 0 ? (
-                  <div className="text-center text-muted-foreground">No articles yet</div>
+                  <div className="text-center text-purple-400">No articles yet</div>
                 ) : (
                   articles.map((article) => (
                     <div
                       key={article.id}
-                      className={`p-3 rounded-lg border bg-background hover:bg-accent cursor-pointer ${
-                        selectedArticle?.id === article.id ? 'border-primary' : ''
+                      className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${
+                        selectedArticle?.id === article.id 
+                          ? 'border-purple-400 bg-purple-50 text-purple-900' 
+                          : 'border-purple-100 bg-white text-gray-700 hover:border-purple-200 hover:bg-purple-50/50'
                       }`}
                       onClick={() => setSelectedArticle(article)}
                     >
@@ -195,10 +197,10 @@ export default function App() {
           </div>
         </ResizablePanel>
 
-        <ResizableHandle />
+        <ResizableHandle className="bg-purple-100 hover:bg-purple-200 transition-colors" />
 
         {/* Center - Editor */}
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={50} minSize={30} className="bg-white">
             <div className="h-full p-4">
               {selectedArticle ? (
                 <EditorContextMenu
@@ -218,22 +220,22 @@ export default function App() {
                       }}
                       height="100%"
                       preview="edit"
-                      className="h-full [&_.w-md-editor-content]:h-full"
+                      className="h-full [&_.w-md-editor-content]:h-full [&_.w-md-editor]:!bg-white [&_.w-md-editor]:!border-purple-100 [&_.w-md-editor-toolbar]:!border-purple-100 [&_.w-md-editor-toolbar]:!bg-purple-50/50"
                     />
                   </div>
                 </EditorContextMenu>
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
+                <div className="h-full flex items-center justify-center text-purple-400">
                   Select an article to start editing
                 </div>
               )}
             </div>
         </ResizablePanel>
 
-        <ResizableHandle />
+        <ResizableHandle className="bg-purple-100 hover:bg-purple-200 transition-colors" />
 
         {/* Right Sidebar - AI Chat */}
-        <ResizablePanel defaultSize={25} data-panel="chat">
+        <ResizablePanel defaultSize={25} data-panel="chat" className="bg-white border-l border-purple-100">
           {selectedArticle ? (
             <AiChat 
               articleId={selectedArticle.id} 
@@ -242,7 +244,7 @@ export default function App() {
               onClearContext={() => setAiContext('')}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
+            <div className="flex h-full items-center justify-center text-purple-400">
               Select an article to start chatting
             </div>
           )}
