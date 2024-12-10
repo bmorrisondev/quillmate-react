@@ -1,12 +1,15 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import authRoutes from './routes/auth';
 import articlesRouter from './routes/articles';
 import aiRouter from './routes/ai';
+import { requireAuth } from './middleware/auth';
 
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 
@@ -15,7 +18,13 @@ const PORT = process.env.PORT || 3000;
 const VITE_PORT = process.env.VITE_PORT || 5173;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:5173',
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 // API routes
@@ -24,8 +33,12 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.use('/api/articles', articlesRouter);
-app.use('/api/ai', aiRouter);
+// Public routes
+app.use('/api/auth', authRoutes);
+
+// Protected routes
+app.use('/api/articles', requireAuth, articlesRouter);
+app.use('/api/ai', requireAuth, aiRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

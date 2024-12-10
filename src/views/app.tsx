@@ -1,20 +1,10 @@
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import MDEditor from '@uiw/react-md-editor'
 import { useEffect, useState, useCallback } from "react"
-import { Button } from "@/components/ui/button"
 import { useDebounce } from "@/hooks/useDebounce"
 import { AiChat } from "@/components/ai-chat"
-import { EditorContextMenu } from "@/components/editor-context-menu"
-
-interface Article {
-  id: number
-  title: string
-  content: string
-  summary?: string
-  createdAt: string
-  updatedAt: string
-}
+import { ArticleEditor } from '@/components/article-editor'
+import { ArticleList } from '@/components/article-list'
+import { Article } from "@/types"
 
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -151,103 +141,56 @@ export default function App() {
     chatPanel?.scrollIntoView({ behavior: 'smooth' })
   }, [selectedText])
 
+  const handleInsertText = useCallback((text: string) => {
+    if (!selectedArticle) return
+    updateArticle(selectedArticle.id, selectedArticle.content + '\n\n' + text)
+  }, [selectedArticle, updateArticle])
+
   return (
     <div className="h-screen w-full bg-purple-50/30">
       <ResizablePanelGroup direction="horizontal" className="min-h-screen">
         {/* Left Sidebar - Article List */}
-        <ResizablePanel defaultSize={20} minSize={15} className="bg-white border-r border-purple-100">
-          <div className="flex h-full flex-col">
-            <div className="border-b border-purple-100 p-4 bg-white">
-              <div className="flex justify-between items-center">
-                <h2 className="font-semibold text-purple-900">Articles</h2>
-                <Button
-                  onClick={createNewArticle}
-                  size="sm"
-                  className="px-3 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  New
-                </Button>
-              </div>
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-2">
-                {isLoading ? (
-                  <div className="text-center text-purple-500">Loading...</div>
-                ) : error ? (
-                  <div className="text-center text-red-500">{error}</div>
-                ) : articles.length === 0 ? (
-                  <div className="text-center text-purple-400">No articles yet</div>
-                ) : (
-                  articles.map((article) => (
-                    <div
-                      key={article.id}
-                      className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${
-                        selectedArticle?.id === article.id 
-                          ? 'border-purple-400 bg-purple-50 text-purple-900' 
-                          : 'border-purple-100 bg-white text-gray-700 hover:border-purple-200 hover:bg-purple-50/50'
-                      }`}
-                      onClick={() => setSelectedArticle(article)}
-                    >
-                      {article.title}
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+        <ResizablePanel defaultSize={20} minSize={15}>
+          <ArticleList
+            articles={articles}
+            selectedArticle={selectedArticle}
+            onArticleSelect={setSelectedArticle}
+            onNewArticle={createNewArticle}
+          />
         </ResizablePanel>
 
-        <ResizableHandle className="bg-purple-100 hover:bg-purple-200 transition-colors" />
+        <ResizableHandle />
 
-        {/* Center - Editor */}
-        <ResizablePanel defaultSize={50} minSize={30} className="bg-white">
-            <div className="h-full p-4">
-              {selectedArticle ? (
-                <EditorContextMenu
-                  selectedText={selectedText}
-                  onCopy={handleCopy}
-                  onCut={handleCut}
-                  onDelete={handleDelete}
-                  onAskAI={handleAskAI}
-                >
-                  <div onContextMenu={handleEditorContextMenu} className="h-full">
-                    <MDEditor
-                      value={selectedArticle.content}
-                      onChange={(value) => {
-                        if (value !== undefined) {
-                          updateArticle(selectedArticle.id, value)
-                        }
-                      }}
-                      height="100%"
-                      preview="edit"
-                      className="h-full [&_.w-md-editor-content]:h-full [&_.w-md-editor]:!bg-white [&_.w-md-editor]:!border-purple-100 [&_.w-md-editor-toolbar]:!border-purple-100 [&_.w-md-editor-toolbar]:!bg-purple-50/50"
-                    />
-                  </div>
-                </EditorContextMenu>
-              ) : (
-                <div className="h-full flex items-center justify-center text-purple-400">
-                  Select an article to start editing
-                </div>
-              )}
-            </div>
-        </ResizablePanel>
-
-        <ResizableHandle className="bg-purple-100 hover:bg-purple-200 transition-colors" />
-
-        {/* Right Sidebar - AI Chat */}
-        <ResizablePanel defaultSize={25} data-panel="chat" className="bg-white border-l border-purple-100">
+        {/* Main Content - Editor */}
+        <ResizablePanel defaultSize={55} className="bg-white">
           {selectedArticle ? (
-            <AiChat 
-              articleId={selectedArticle.id} 
-              onInsertText={(text) => updateArticle(selectedArticle.id, selectedArticle.content + '\n\n' + text)}
-              context={aiContext}
-              onClearContext={() => setAiContext('')}
+            <ArticleEditor
+              article={selectedArticle}
+              onUpdate={updateArticle}
+              onCopy={handleCopy}
+              onCut={handleCut}
+              onDelete={handleDelete}
+              onAskAI={handleAskAI}
+              onContextMenu={handleEditorContextMenu}
+              selectedText={selectedText}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-purple-400">
-              Select an article to start chatting
+            <div className="h-full flex items-center justify-center text-gray-500">
+              Select an article or create a new one
             </div>
           )}
+        </ResizablePanel>
+
+        <ResizableHandle />
+
+        {/* Right Sidebar - AI Chat */}
+        <ResizablePanel defaultSize={25} minSize={20} data-panel="chat">
+          <AiChat 
+            articleId={selectedArticle?.id || 0} 
+            context={aiContext} 
+            onInsertText={handleInsertText}
+            onClearContext={() => setAiContext('')}
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

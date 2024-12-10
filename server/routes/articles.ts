@@ -3,12 +3,34 @@ import { prisma } from '../db/prisma';
 
 const router = Router();
 
+// Get default user or create if doesn't exist
+async function getDefaultUser() {
+  const defaultUser = await prisma.user.findFirst();
+  if (defaultUser) return defaultUser;
+
+  return prisma.user.create({
+    data: {
+      email: 'default@example.com',
+      name: 'Default User'
+    }
+  });
+}
+
 // Get all articles
 router.get('/', async (req, res) => {
   try {
     const allArticles = await prisma.article.findMany({
       orderBy: {
         updatedAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     res.json(allArticles);
@@ -24,6 +46,15 @@ router.get('/:id', async (req, res) => {
     const article = await prisma.article.findUnique({
       where: {
         id: parseInt(req.params.id)
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -42,15 +73,26 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { title, content, summary } = req.body;
+    const defaultUser = await getDefaultUser();
+    
     const newArticle = await prisma.article.create({
       data: {
         title,
         content,
-        summary
+        summary,
+        userId: defaultUser.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
-
-    res.status(201).json(newArticle);
+    res.json(newArticle);
   } catch (error) {
     console.error('Error creating article:', error);
     res.status(500).json({ error: 'Failed to create article' });
@@ -70,6 +112,15 @@ router.put('/:id', async (req, res) => {
         content,
         summary,
         updatedAt: new Date()
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
