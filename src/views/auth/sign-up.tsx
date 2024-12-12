@@ -4,8 +4,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
-import { useForm } from '@/hooks/use-form'
-import { signUpSchema } from '../../utils/validation'
+import { z, ZodError } from 'zod'
+
+const signUpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  name: z.string().optional()
+})
+
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -13,20 +24,51 @@ export default function SignUp() {
     password: '',
     name: ''
   })
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    name?: string;
+    submit?: string;
+  }>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
   const { signUp } = useAuth()
 
-  const { errors, isSubmitting, handleSubmit } = useForm({
-    schema: signUpSchema,
-    onSubmit: async (data) => {
-      await signUp(data.email, data.password, data.name)
+  const handleSubmit = async (data: typeof formData) => {
+    try {
+      setIsSubmitting(true)
+      setErrors({})
+      
+      // Validate the form data
+      const validatedData = signUpSchema.parse(data)
+      
+      // Attempt sign up
+      await signUp(validatedData.email, validatedData.password, validatedData.name)
       navigate('/app')
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const formattedErrors: Record<string, string> = {}
+        error.errors.forEach((err) => {
+          if (err.path) {
+            formattedErrors[err.path[0]] = err.message
+          }
+        })
+        setErrors(formattedErrors)
+      } else {
+        setErrors({ submit: 'Failed to create account. Please try again.' })
+      }
+    } finally {
+      setIsSubmitting(false)
     }
-  })
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }))
+    }
   }
 
   return (

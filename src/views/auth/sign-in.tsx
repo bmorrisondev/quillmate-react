@@ -4,28 +4,62 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
-import { useForm } from '@/hooks/use-form'
-import { signInSchema } from '../../utils/validation'
+import { z, ZodError } from 'zod'
+
+const signInSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required')
+})
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    submit?: string;
+  }>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
   const { signIn } = useAuth()
 
-  const { errors, isSubmitting, handleSubmit } = useForm({
-    schema: signInSchema,
-    onSubmit: async (data) => {
-      await signIn(data.email, data.password)
+  const handleSubmit = async (data: typeof formData) => {
+    try {
+      setIsSubmitting(true)
+      setErrors({})
+      
+      // Validate the form data
+      const validatedData = signInSchema.parse(data)
+      
+      // Attempt sign in
+      await signIn(validatedData.email, validatedData.password)
       navigate('/app')
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const formattedErrors: Record<string, string> = {}
+        error.errors.forEach((err) => {
+          if (err.path) {
+            formattedErrors[err.path[0]] = err.message
+          }
+        })
+        setErrors(formattedErrors)
+      } else {
+        setErrors({ submit: 'Failed to sign in. Please try again.' })
+      }
+    } finally {
+      setIsSubmitting(false)
     }
-  })
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }))
+    }
   }
 
   return (

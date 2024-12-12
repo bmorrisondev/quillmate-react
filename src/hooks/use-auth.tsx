@@ -19,6 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [])
 
+  // Used to check the session status with the server
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me', {
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Used to create a session and store the user data in the context
   const signIn = async (email: string, password: string) => {
     const response = await fetch('/api/auth/signin', {
       method: 'POST',
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user)
   }
 
+  // Used to sign up a new user, create a session, and store the user data in the context
   const signUp = async (email: string, password: string, name?: string) => {
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user)
   }
 
+  // Used to sign out a user and clear the user data from the context
   const signOut = async () => {
     await fetch('/api/auth/signout', {
       method: 'POST',
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Custom hook to access the auth context from any component
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
