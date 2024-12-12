@@ -1,27 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import { prisma } from '../db/prisma'
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number
-        email: string
-        name: string | null
-      }
-      session?: {
-        id: number
-        token: string
-      }
-    }
-  }
-}
-
-export async function requireAuth(
+export const requireAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-) {
+) => {
   try {
     const token = req.cookies.session
 
@@ -50,6 +34,7 @@ export async function requireAuth(
       email: session.user.email,
       name: session.user.name
     }
+
     req.session = {
       id: session.id,
       token: session.token

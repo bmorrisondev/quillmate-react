@@ -2,13 +2,38 @@ import { Router } from 'express'
 import { prisma } from '../db/prisma'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
+import { ZodError } from 'zod'
+import { requireAuth } from '../middleware/auth'
+import { z } from 'zod'
 
 const router = Router()
+
+const signUpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  name: z.string().optional()
+})
 
 // Sign up
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password, name } = req.body
+    const result = signUpSchema.safeParse(req.body)
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: result.error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message
+        }))
+      })
+    }
+
+    const { email, password, name } = result.data
 
     // Validate input
     if (!email || !password) {
@@ -42,7 +67,7 @@ router.post('/signup', async (req, res) => {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30) // 30 days from now
 
-    const session = await prisma.session.create({
+    await prisma.session.create({
       data: {
         token,
         userId: user.id,
@@ -50,8 +75,8 @@ router.post('/signup', async (req, res) => {
       }
     })
 
-    // Set session cookie
-    res.cookie('session', session.token, {
+    // Set cookie
+    res.cookie('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -59,22 +84,46 @@ router.post('/signup', async (req, res) => {
     })
 
     res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }
+      id: user.id,
+      email: user.email,
+      name: user.name
     })
-  } catch (error) {
-    console.error('Signup error:', error)
-    res.status(500).json({ error: 'Failed to create account' })
+  } catch (err) {
+    console.error('Sign up error:', err)
+    if (err instanceof ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: err.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message
+        }))
+      })
+    }
+    res.status(500).json({ error: 'Internal server error' })
   }
 })
 
+
+
+const signInSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required')
+})
 // Sign in
 router.post('/signin', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const result = signInSchema.safeParse(req.body)
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: result.error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message
+        }))
+      })
+    }
+
+    const { email, password } = result.data
 
     // Validate input
     if (!email || !password) {
@@ -101,7 +150,7 @@ router.post('/signin', async (req, res) => {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30) // 30 days from now
 
-    const session = await prisma.session.create({
+    await prisma.session.create({
       data: {
         token,
         userId: user.id,
@@ -109,8 +158,8 @@ router.post('/signin', async (req, res) => {
       }
     })
 
-    // Set session cookie
-    res.cookie('session', session.token, {
+    // Set cookie
+    res.cookie('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -118,20 +167,27 @@ router.post('/signin', async (req, res) => {
     })
 
     res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }
+      id: user.id,
+      email: user.email,
+      name: user.name
     })
-  } catch (error) {
-    console.error('Signin error:', error)
-    res.status(500).json({ error: 'Failed to sign in' })
+  } catch (err) {
+    console.error('Sign in error:', err)
+    if (err instanceof ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: err.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message
+        }))
+      })
+    }
+    res.status(500).json({ error: 'Internal server error' })
   }
 })
 
 // Sign out
-router.post('/signout', async (req, res) => {
+router.post('/signout', requireAuth, async (req, res) => {
   try {
     const token = req.cookies.session
     if (token) {
@@ -148,7 +204,7 @@ router.post('/signout', async (req, res) => {
 })
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   try {
     const token = req.cookies.session
     if (!token) {
