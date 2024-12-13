@@ -1,25 +1,24 @@
 import { Router } from 'express';
 import { prisma } from '../db/prisma';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-// Get default user or create if doesn't exist
-// async function getDefaultUser() {
-//   const defaultUser = await prisma.user.findFirst();
-//   if (defaultUser) return defaultUser;
-
-//   return prisma.user.create({
-//     data: {
-//       email: 'default@example.com',
-//       name: 'Default User'
-//     }
-//   });
-// }
+// Apply auth middleware to all routes
+router.use(requireAuth);
 
 // Get all articles
 router.get('/', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+
     const allArticles = await prisma.article.findMany({
+      where: {
+        userId: req.user.id
+      },
       orderBy: {
         updatedAt: 'desc'
       },
@@ -43,9 +42,15 @@ router.get('/', async (req, res) => {
 // Get single article
 router.get('/:id', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const article = await prisma.article.findUnique({
       where: {
-        id: parseInt(req.params.id)
+        id: parseInt(req.params.id),
+        userId: req.user.id
       },
       include: {
         user: {
@@ -59,7 +64,8 @@ router.get('/:id', async (req, res) => {
     });
 
     if (!article) {
-      return res.status(404).json({ error: 'Article not found' });
+      res.status(404).json({ error: 'Article not found' });
+      return
     }
 
     res.json(article);
@@ -72,15 +78,19 @@ router.get('/:id', async (req, res) => {
 // Create article
 router.post('/', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const { title, content, summary } = req.body;
-    const defaultUser = await getDefaultUser();
     
     const newArticle = await prisma.article.create({
       data: {
         title,
         content,
         summary,
-        userId: defaultUser.id
+        userId: req.user.id
       },
       include: {
         user: {
@@ -102,10 +112,30 @@ router.post('/', async (req, res) => {
 // Update article
 router.put('/:id', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const { title, content, summary } = req.body;
+    const articleId = parseInt(req.params.id);
+
+    // First verify the article belongs to the user
+    const article = await prisma.article.findUnique({
+      where: {
+        id: articleId,
+        userId: req.user.id
+      }
+    });
+
+    if (!article) {
+      res.status(404).json({ error: 'Article not found' });
+      return
+    }
+
     const updatedArticle = await prisma.article.update({
       where: {
-        id: parseInt(req.params.id)
+        id: articleId
       },
       data: {
         title,
@@ -124,10 +154,6 @@ router.put('/:id', async (req, res) => {
       }
     });
 
-    if (!updatedArticle) {
-      return res.status(404).json({ error: 'Article not found' });
-    }
-
     res.json(updatedArticle);
   } catch (error) {
     console.error('Error updating article:', error);
@@ -138,16 +164,31 @@ router.put('/:id', async (req, res) => {
 // Delete article
 router.delete('/:id', async (req, res) => {
   try {
-    const deletedArticle = await prisma.article.delete({
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+
+    const articleId = parseInt(req.params.id);
+
+    // First verify the article belongs to the user
+    const article = await prisma.article.findUnique({
       where: {
-        id: parseInt(req.params.id)
+        id: articleId,
+        userId: req.user.id
       }
     });
 
-    if (!deletedArticle) {
+    if (!article) {
       res.status(404).json({ error: 'Article not found' });
-      return
+      return;
     }
+
+    const deletedArticle = await prisma.article.delete({
+      where: {
+        id: articleId
+      }
+    });
 
     res.json(deletedArticle);
   } catch (error) {
