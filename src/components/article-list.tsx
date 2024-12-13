@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Article } from "@/types"
+import { useAuth } from "@/hooks/use-auth"
 
 interface ArticleListProps {
   articles: Article[]
@@ -15,6 +16,8 @@ export function ArticleList({
   onArticleSelect,
   onNewArticle,
 }: ArticleListProps) {
+  const { signOut } = useAuth()
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-purple-100 p-4 bg-white">
@@ -44,6 +47,15 @@ export function ArticleList({
           ))}
         </div>
       </ScrollArea>
+      <div className="border-b border-t border-purple-100 p-4 bg-white">
+        <Button
+          onClick={() => signOut()}
+          variant="outline"
+          className="w-full"
+        >
+          Sign Out
+        </Button>
+      </div>
     </div>
   )
 }

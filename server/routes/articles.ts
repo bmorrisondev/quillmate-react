@@ -4,17 +4,17 @@ import { prisma } from '../db/prisma';
 const router = Router();
 
 // Get default user or create if doesn't exist
-async function getDefaultUser() {
-  const defaultUser = await prisma.user.findFirst();
-  if (defaultUser) return defaultUser;
+// async function getDefaultUser() {
+//   const defaultUser = await prisma.user.findFirst();
+//   if (defaultUser) return defaultUser;
 
-  return prisma.user.create({
-    data: {
-      email: 'default@example.com',
-      name: 'Default User'
-    }
-  });
-}
+//   return prisma.user.create({
+//     data: {
+//       email: 'default@example.com',
+//       name: 'Default User'
+//     }
+//   });
+// }
 
 // Get all articles
 router.get('/', async (req, res) => {
@@ -145,7 +145,8 @@ router.delete('/:id', async (req, res) => {
     });
 
     if (!deletedArticle) {
-      return res.status(404).json({ error: 'Article not found' });
+      res.status(404).json({ error: 'Article not found' });
+      return
     }
 
     res.json(deletedArticle);

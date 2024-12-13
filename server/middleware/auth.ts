@@ -10,7 +10,8 @@ export const requireAuth = async (
     const token = req.cookies.session
 
     if (!token) {
-      return res.status(401).json({ error: 'Authentication required' })
+      res.status(401).json({ error: 'Authentication required' })
+      return
     }
 
     const session = await prisma.session.findUnique({
@@ -20,13 +21,15 @@ export const requireAuth = async (
 
     if (!session) {
       res.clearCookie('session')
-      return res.status(401).json({ error: 'Invalid session' })
+      res.status(401).json({ error: 'Invalid session' })
+      return
     }
 
     if (session.expiresAt < new Date()) {
       await prisma.session.delete({ where: { id: session.id } })
       res.clearCookie('session')
-      return res.status(401).json({ error: 'Session expired' })
+      res.status(401).json({ error: 'Session expired' })
+      return
     }
 
     req.user = {

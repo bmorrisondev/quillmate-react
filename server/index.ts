@@ -53,6 +53,8 @@ if (process.env.NODE_ENV !== 'production') {
       changeOrigin: true,
       ws: true,
       // Don't proxy /api requests
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       filter: (pathname: string) => !pathname.startsWith('/api'),
     })
   );

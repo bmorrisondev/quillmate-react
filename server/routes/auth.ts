@@ -24,20 +24,22 @@ router.post('/signup', async (req, res) => {
   try {
     const result = signUpSchema.safeParse(req.body)
     if (!result.success) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Validation failed', 
         details: result.error.errors.map(err => ({
           path: err.path.join('.'),
           message: err.message
         }))
       })
+      return
     }
 
     const { email, password, name } = result.data
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' })
+      res.status(400).json({ error: 'Email and password are required' })
+      return
     }
 
     // Check if user exists
@@ -46,7 +48,8 @@ router.post('/signup', async (req, res) => {
     })
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' })
+      res.status(400).json({ error: 'Email already registered' })
+      return
     }
 
     // Hash password
@@ -91,13 +94,14 @@ router.post('/signup', async (req, res) => {
   } catch (err) {
     console.error('Sign up error:', err)
     if (err instanceof ZodError) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Validation failed',
         details: err.errors.map(err => ({
           path: err.path.join('.'),
           message: err.message
         }))
       })
+      return
     }
     res.status(500).json({ error: 'Internal server error' })
   }
@@ -114,20 +118,22 @@ router.post('/signin', async (req, res) => {
   try {
     const result = signInSchema.safeParse(req.body)
     if (!result.success) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Validation failed', 
         details: result.error.errors.map(err => ({
           path: err.path.join('.'),
           message: err.message
         }))
       })
+      return
     }
 
     const { email, password } = result.data
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' })
+      res.status(400).json({ error: 'Email and password are required' })
+      return
     }
 
     // Find user
@@ -136,13 +142,15 @@ router.post('/signin', async (req, res) => {
     })
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' })
+      res.status(401).json({ error: 'Invalid credentials' })
+      return
     }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.passwordHash)
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid credentials' })
+      res.status(401).json({ error: 'Invalid credentials' })
+      return
     }
 
     // Create session
@@ -174,13 +182,14 @@ router.post('/signin', async (req, res) => {
   } catch (err) {
     console.error('Sign in error:', err)
     if (err instanceof ZodError) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Validation failed',
         details: err.errors.map(err => ({
           path: err.path.join('.'),
           message: err.message
         }))
       })
+      return
     }
     res.status(500).json({ error: 'Internal server error' })
   }
@@ -208,7 +217,8 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const token = req.cookies.session
     if (!token) {
-      return res.json({ user: null })
+      res.json({ user: null })
+      return
     }
 
     const session = await prisma.session.findUnique({
@@ -218,15 +228,14 @@ router.get('/me', requireAuth, async (req, res) => {
 
     if (!session || session.expiresAt < new Date()) {
       res.clearCookie('session')
-      return res.json({ user: null })
+      res.json({ user: null })
+      return
     }
 
     res.json({
-      user: {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name
-      }
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name
     })
   } catch (error) {
     console.error('Get current user error:', error)
