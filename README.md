@@ -70,6 +70,8 @@ Before you begin, ensure you have the following:
    npm run dev
    ```
 
+You may access the application at [http://localhost:3000](http://localhost:3000). Feel free to create an article and test the AI writing assistant.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
