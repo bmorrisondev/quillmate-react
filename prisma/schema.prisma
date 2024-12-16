@@ -15,6 +15,8 @@ model Article {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   messages  Message[]
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @map("user_id")
 
   @@map("articles")
 }
@@ -29,4 +31,28 @@ model Message {
   articleId Int
 
   @@map("messages")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String?
+  passwordHash String    @map("password_hash")
+  sessions     Session[]
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+  articles     Article[]
+
+  @@map("users")
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sessions")
 }

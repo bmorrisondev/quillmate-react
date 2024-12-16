@@ -6,10 +6,26 @@ const router = Router();
 // Get all articles
 router.get('/', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(401).json({ error: 'User not found' });
+      return
+    }
 
     const allArticles = await prisma.article.findMany({
+      where: {
+        userId: req.user.id
+      },
       orderBy: {
         updatedAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     res.json(allArticles);
@@ -22,10 +38,25 @@ router.get('/', async (req, res) => {
 // Get single article
 router.get('/:id', async (req, res) => {
   try {    
+    if(!req.user) {
+      res.status(401).json({ error: 'User not found' });
+      return
+    }
+
     const article = await prisma.article.findUnique({
       where: {
         id: parseInt(req.params.id),
+        userId: req.user.id
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
     });
 
     if (!article) {
@@ -43,6 +74,11 @@ router.get('/:id', async (req, res) => {
 // Create article
 router.post('/', async (req, res) => {
   try {    
+    if(!req.user) {
+      res.status(401).json({ error: 'User not found' });
+      return
+    }
+
     const { title, content, summary } = req.body;
     
     const newArticle = await prisma.article.create({
@@ -50,6 +86,16 @@ router.post('/', async (req, res) => {
         title,
         content,
         summary,
+        userId: req.user.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     res.json(newArticle);
@@ -62,6 +108,10 @@ router.post('/', async (req, res) => {
 // Update article
 router.put('/:id', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(401).json({ error: 'User not found' });
+      return
+    }
     
     const { title, content, summary } = req.body;
     const articleId = parseInt(req.params.id);
@@ -69,7 +119,8 @@ router.put('/:id', async (req, res) => {
     // First verify the article belongs to the user
     const article = await prisma.article.findUnique({
       where: {
-        id: articleId
+        id: articleId,
+        userId: req.user.id
       }
     });
 
@@ -87,6 +138,15 @@ router.put('/:id', async (req, res) => {
         content,
         summary,
         updatedAt: new Date()
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -100,13 +160,18 @@ router.put('/:id', async (req, res) => {
 // Delete article
 router.delete('/:id', async (req, res) => {
   try {
-    
+    if(!req.user) {
+      res.status(401).json({ error: 'User not found' });
+      return
+    }
+
     const articleId = parseInt(req.params.id);
 
     // First verify the article belongs to the user
     const article = await prisma.article.findUnique({
       where: {
-        id: articleId
+        id: articleId,
+        userId: req.user.id
       }
     });
 
