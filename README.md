@@ -1,50 +1,79 @@
-# React + TypeScript + Vite
+# QuillMate React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+QuillMate is a React app that features a markdown text editor and AI-powered writing assistant using OpenAI's ChatGPT.
 
-Currently, two official plugins are available:
+It was created as a realistic demo project to accompany an article on the Clerk blog walking users through how to set up session-based authentication in React.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The app is built using Vite, React, TypeScript, and Tailwind CSS, and features a simple markdown editor powered by [mdeditor](https://github.com/nextmd/mdeditor).
 
-## Expanding the ESLint configuration
+## Looking for a Full-Featured Auth Solution?
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Check out [Clerk](https://clerk.com) - the comprehensive authentication and user management platform:
 
-- Configure the top-level `parserOptions` property like this:
+- 🎨 Beautiful drop-in UI components for authentication
+- 🔑 Social sign-on with multiple providers (Google, GitHub, etc.)
+- 🏢 Enterprise-ready B2B configurations
+- 📊 Simple user management dashboard
+- 📱 Multi-factor authentication
+- 🔒 Built-in security best practices
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+While this template demonstrates session-based auth fundamentals, Clerk provides a production-ready solution that scales with your application.
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Prerequisites
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+Before you begin, ensure you have the following:
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
+
+## Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/quillmate-react.git
+   cd quillmate-react
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+
+4. **Set up Neon Database**
+   - Create an account at [Neon](https://neon.tech)
+   - Create a new project
+   - Copy your database connection string
+   - Replace `<neondb_connection_string>` in your `.env` file with your connection string
+
+5. **Configure Prisma**
+   ```bash
+   # Generate Prisma Client
+   npx prisma generate
+   
+   # Push the schema to your database
+   npx prisma db push
+   ```
+
+6. **Get OpenAI API Key**
+   - Create an account at [OpenAI](https://platform.openai.com)
+   - Generate an API key
+   - Replace `<openai_api_key>` in your `.env` file with your API key
+
+7. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

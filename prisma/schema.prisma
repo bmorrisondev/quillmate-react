@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model Article {
   id        Int      @id @default(autoincrement())
   title     String   @db.VarChar(256)

@@ -87,15 +87,6 @@ router.put('/:id', async (req, res) => {
         content,
         summary,
         updatedAt: new Date()
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
       }
     });
 
