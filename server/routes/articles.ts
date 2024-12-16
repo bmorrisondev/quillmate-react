@@ -1,14 +1,35 @@
 import { Router } from 'express';
 import { prisma } from '../db/prisma';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
+
+// Apply auth middleware to all routes
+router.use(requireAuth);
 
 // Get all articles
 router.get('/', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+
     const allArticles = await prisma.article.findMany({
+      where: {
+        userId: req.user.id
+      },
       orderBy: {
         updatedAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     res.json(allArticles);
@@ -21,14 +42,30 @@ router.get('/', async (req, res) => {
 // Get single article
 router.get('/:id', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const article = await prisma.article.findUnique({
       where: {
-        id: parseInt(req.params.id)
+        id: parseInt(req.params.id),
+        userId: req.user.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
     if (!article) {
-      return res.status(404).json({ error: 'Article not found' });
+      res.status(404).json({ error: 'Article not found' });
+      return
     }
 
     res.json(article);
@@ -41,16 +78,31 @@ router.get('/:id', async (req, res) => {
 // Create article
 router.post('/', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const { title, content, summary } = req.body;
+    
     const newArticle = await prisma.article.create({
       data: {
         title,
         content,
-        summary
+        summary,
+        userId: req.user.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
-
-    res.status(201).json(newArticle);
+    res.json(newArticle);
   } catch (error) {
     console.error('Error creating article:', error);
     res.status(500).json({ error: 'Failed to create article' });
@@ -60,22 +112,47 @@ router.post('/', async (req, res) => {
 // Update article
 router.put('/:id', async (req, res) => {
   try {
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+    
     const { title, content, summary } = req.body;
+    const articleId = parseInt(req.params.id);
+
+    // First verify the article belongs to the user
+    const article = await prisma.article.findUnique({
+      where: {
+        id: articleId,
+        userId: req.user.id
+      }
+    });
+
+    if (!article) {
+      res.status(404).json({ error: 'Article not found' });
+      return
+    }
+
     const updatedArticle = await prisma.article.update({
       where: {
-        id: parseInt(req.params.id)
+        id: articleId
       },
       data: {
         title,
         content,
         summary,
         updatedAt: new Date()
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
-
-    if (!updatedArticle) {
-      return res.status(404).json({ error: 'Article not found' });
-    }
 
     res.json(updatedArticle);
   } catch (error) {
@@ -87,15 +164,31 @@ router.put('/:id', async (req, res) => {
 // Delete article
 router.delete('/:id', async (req, res) => {
   try {
-    const deletedArticle = await prisma.article.delete({
+    if(!req.user) {
+      res.status(404).json({ error: 'User not found' });
+      return
+    }
+
+    const articleId = parseInt(req.params.id);
+
+    // First verify the article belongs to the user
+    const article = await prisma.article.findUnique({
       where: {
-        id: parseInt(req.params.id)
+        id: articleId,
+        userId: req.user.id
       }
     });
 
-    if (!deletedArticle) {
-      return res.status(404).json({ error: 'Article not found' });
+    if (!article) {
+      res.status(404).json({ error: 'Article not found' });
+      return;
     }
+
+    const deletedArticle = await prisma.article.delete({
+      where: {
+        id: articleId
+      }
+    });
 
     res.json(deletedArticle);
   } catch (error) {
